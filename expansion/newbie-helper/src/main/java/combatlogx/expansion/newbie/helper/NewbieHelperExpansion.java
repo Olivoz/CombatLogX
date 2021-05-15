@@ -9,10 +9,15 @@ import combatlogx.expansion.newbie.helper.listener.ListenerDamage;
 import combatlogx.expansion.newbie.helper.listener.ListenerJoin;
 import combatlogx.expansion.newbie.helper.manager.PVPManager;
 import combatlogx.expansion.newbie.helper.manager.ProtectionManager;
+import org.bukkit.configuration.file.YamlConfiguration;
+
+import java.util.logging.Handler;
 
 public final class NewbieHelperExpansion extends Expansion {
     private final PVPManager pvpManager;
     private final ProtectionManager protectionManager;
+    private HookLootProtection hookLootProtection = null;
+
     public NewbieHelperExpansion(ICombatLogX plugin) {
         super(plugin);
         this.pvpManager = new PVPManager();
@@ -30,7 +35,10 @@ public final class NewbieHelperExpansion extends Expansion {
         new ListenerJoin(this).register();
         new ListenerDamage(this).register();
         new CommandTogglePVP(this).register();
-        new HookLootProtection(this);
+        YamlConfiguration config = getConfigurationManager().get("config.yml");
+        if(!config.getBoolean("hooks.loot-protection", false)) return;
+        this.hookLootProtection = new HookLootProtection(this);
+        this.hookLootProtection.register();
     }
 
     @Override
@@ -42,6 +50,19 @@ public final class NewbieHelperExpansion extends Expansion {
     public void reloadConfig() {
         ConfigurationManager configurationManager = getConfigurationManager();
         configurationManager.reload("config.yml");
+        YamlConfiguration config = getConfigurationManager().get("config.yml");
+        boolean hookLootProtection = config.getBoolean("hooks.loot-protection", false);
+        if(!hookLootProtection && this.hookLootProtection != null) {
+            this.hookLootProtection.unregister();
+            this.hookLootProtection = null;
+            return;
+        }
+
+        if(hookLootProtection && this.hookLootProtection == null) {
+            this.hookLootProtection = new HookLootProtection(this);
+            this.hookLootProtection.register();
+        }
+
     }
 
     public PVPManager getPVPManager() {
