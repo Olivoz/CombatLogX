@@ -13,3 +13,7 @@ protection-time: 30000
 # Should new players also be protected from mob attacks?
 # Default: true
 mob-protection: false
+
+hooks:
+  # Hook in to the loot protection expansion and prevent protected players from stealing items. This option is useless if "protect" is set to true in the loot protection config.
+  loot-protection: false

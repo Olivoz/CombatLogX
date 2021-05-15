@@ -1,15 +1,14 @@
 package combatlogx.expansion.loot.protection.listener;
 
-import com.github.sirblobman.api.configuration.ConfigurationManager;
 import com.github.sirblobman.api.configuration.PlayerDataManager;
 import com.github.sirblobman.api.language.Replacer;
 import com.github.sirblobman.combatlogx.CombatPlugin;
 import com.github.sirblobman.combatlogx.api.event.PlayerPunishEvent;
 import com.github.sirblobman.combatlogx.api.event.PlayerUntagEvent;
-import com.github.sirblobman.combatlogx.api.expansion.Expansion;
 import com.github.sirblobman.combatlogx.api.expansion.ExpansionListener;
 import com.github.sirblobman.combatlogx.api.object.UntagReason;
 import com.github.sirblobman.combatlogx.listener.ListenerDeath;
+import combatlogx.expansion.loot.protection.LootProtectionExpansion;
 import combatlogx.expansion.loot.protection.event.QueryPickupEvent;
 import combatlogx.expansion.loot.protection.object.ProtectedItem;
 import net.jodah.expiringmap.ExpiringMap;
@@ -42,17 +41,16 @@ public class ListenerLootProtection extends ExpansionListener {
     private final ExpiringMap<UUID, ProtectedItem> protectedItems;
     private final Map<Location, ConcurrentLinkedQueue<ProtectedItem>> pendingProtection;
     private final Map<UUID, UUID> enemyMap;
-    private final YamlConfiguration configuration;
     private final PlayerDataManager playerDataManager;
+    private final LootProtectionExpansion expansion;
 
-    public ListenerLootProtection(final Expansion expansion) {
+    public ListenerLootProtection(final LootProtectionExpansion expansion) {
         super(expansion);
-        ConfigurationManager configurationManager = getCombatLogX().getConfigurationManager();
-        this.configuration = configurationManager.get("config.yml");
-        this.messageCooldown = Collections.newSetFromMap(ExpiringMap.builder().expiration(configuration.getLong("message-cooldown", 1), TimeUnit.SECONDS).build());
-        this.pendingProtection = ExpiringMap.builder().expiration(configuration.getLong("loot-protection-time", 30), TimeUnit.SECONDS).build();
-        this.protectedItems = ExpiringMap.builder().expiration(configuration.getLong("loot-protection-time", 30), TimeUnit.SECONDS).build();
-        this.enemyMap = ExpiringMap.builder().expiration(configuration.getLong("loot-protection-time", 30), TimeUnit.SECONDS).build();
+        this.expansion = expansion;
+        this.messageCooldown = Collections.newSetFromMap(ExpiringMap.builder().expiration(expansion.messageCooldown, TimeUnit.SECONDS).build());
+        this.pendingProtection = ExpiringMap.builder().expiration(expansion.lootProtectionTime, TimeUnit.SECONDS).build();
+        this.protectedItems = ExpiringMap.builder().expiration(expansion.lootProtectionTime, TimeUnit.SECONDS).build();
+        this.enemyMap = ExpiringMap.builder().expiration(expansion.lootProtectionTime, TimeUnit.SECONDS).build();
         this.playerDataManager = getCombatLogX().getPlayerDataManager();
     }
 
@@ -77,7 +75,7 @@ public class ListenerLootProtection extends ExpansionListener {
             UUID uuid = player.getUniqueId();
             QueryPickupEvent query = new QueryPickupEvent(player, item);
             Bukkit.getPluginManager().callEvent(query);
-            if(!item.getOwnerUUID().equals(uuid) && !query.isCancelled()) {
+            if((expansion.protect && !item.getOwnerUUID().equals(uuid)) && !query.isCancelled()) {
                 if(!messageCooldown.contains(uuid)) {
                     Replacer replacer = message -> message.replace("{time}", "" + TimeUnit.MILLISECONDS.toSeconds(protectedItems.getExpectedExpiration(event.getItem().getUniqueId())));
                     getLanguageManager().sendMessage(player, "expansion.loot-protection.protected", replacer, true);
@@ -129,7 +127,7 @@ public class ListenerLootProtection extends ExpansionListener {
         CombatPlugin clx = (CombatPlugin) getCombatLogX();
         ListenerDeath listenerDeath = clx.getDeathListener();
         Entity entity = event.getEntity();
-        if(entity instanceof Player && configuration.getBoolean("only-protect-after-log", false) && !listenerDeath.contains((Player) entity)) {
+        if(entity instanceof Player && expansion.onlyProtectAfterLog && !listenerDeath.contains((Player) entity)) {
             return;
         }
 
@@ -166,7 +164,7 @@ public class ListenerLootProtection extends ExpansionListener {
 
     private boolean checkVoidKill(EntityDeathEvent event) {
         LivingEntity entity = event.getEntity();
-        if(entity.getLastDamageCause() != null && entity.getLastDamageCause().getCause() == EntityDamageEvent.DamageCause.VOID && configuration.getBoolean("return-void-items", true)) {
+        if(entity.getLastDamageCause() != null && entity.getLastDamageCause().getCause() == EntityDamageEvent.DamageCause.VOID && expansion.returnVoidItems) {
             UUID enemyUUID = enemyMap.get(entity.getUniqueId());
             if(enemyUUID == null) return true;
             Entity enemy = Bukkit.getEntity(enemyUUID);

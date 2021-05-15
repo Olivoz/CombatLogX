@@ -3,8 +3,8 @@ package combatlogx.expansion.newbie.helper;
 import com.github.sirblobman.api.configuration.ConfigurationManager;
 import com.github.sirblobman.combatlogx.api.ICombatLogX;
 import com.github.sirblobman.combatlogx.api.expansion.Expansion;
-
 import combatlogx.expansion.newbie.helper.command.CommandTogglePVP;
+import combatlogx.expansion.newbie.helper.hooks.HookLootProtection;
 import combatlogx.expansion.newbie.helper.listener.ListenerDamage;
 import combatlogx.expansion.newbie.helper.listener.ListenerJoin;
 import combatlogx.expansion.newbie.helper.manager.PVPManager;
@@ -30,6 +30,7 @@ public final class NewbieHelperExpansion extends Expansion {
         new ListenerJoin(this).register();
         new ListenerDamage(this).register();
         new CommandTogglePVP(this).register();
+        new HookLootProtection(this);
     }
 
     @Override

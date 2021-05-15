@@ -12,3 +12,7 @@ only-protect-after-log: false
 
 # Should the expansion add items to the killers inventory if the player dies in the void?
 return-void-items: true
+
+# Should the expansion protect items. This option is here to disable the internal protection behaviour and allow other expansions to override it. Items will still be tracked.
+# Default: true
+protect: true
